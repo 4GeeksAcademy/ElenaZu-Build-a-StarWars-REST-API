@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User, Character, Planet, Favorite
 #from models import Person
 
 app = Flask(__name__)
@@ -44,6 +44,75 @@ def handle_hello():
     }
 
     return jsonify(response_body), 200
+
+@app.route('/people', methods=['GET'])
+def get_people():
+    
+    characters = Character.query.all()
+    response = list(map(lambda character: character.serialize(),characters))
+    return jsonify(response), 200
+
+@app.route('/people/<int:character_id>',  methods=['GET'])
+def get_character_by_id(character_id):
+
+    character = Character.query.get(character_id)
+    if not character:
+         raise APIException("Character not found", status_code=404)
+    return jsonify(character.serialize()), 200
+
+@app.route('/planets', methods=['GET'])
+def get_planets():
+
+    planets = Planet.query.all()
+    response = list(map(lambda planet: planet.serialize(),planets))
+    return jsonify(response), 200
+
+@app.route('/planets/<int:planet_id>',  methods=['GET'])
+def get_planet_by_id(planet_id):
+
+    planet = Planet.query.get(planet_id)
+    if not planet:
+         raise APIException("Planet not found", status_code=404)
+    return jsonify(planet.serialize()), 200
+
+@app.route('/favorite/planet/<int:planet_id>',  methods=['POST'])
+def add_new_favorite_planet(planet_id):
+    current_user = 1
+    planet = Planet.query.filter_by(id = planet_id).first()
+    if planet is not None:
+        favorite = Favorite.query.filter_by(name = planet.name).first()
+        if favorite:
+            return jsonify({"ok": True, "message": "El favorito existe"}), 200
+        body = {
+            "name" : planet.name, 
+            "user_id" : current_user
+        }
+        new_favorite = Favorite.create(body)
+        if new_favorite is not None:
+            return jsonify(new_favorite.serialize()), 201
+        return jsonify({"message": "Ocurrió un error del lado del servidor"}), 500
+    return jsonify({
+        "message": "Planeta no encontrado"
+    }), 404 # No encontrado
+
+    # planet = Planet.query.filter_by(id = planet_id).first()
+    # if planet is not None:
+    #     favorite = Favorite.query.filter_by(name = planet.name).first()
+    #     if favorite:
+    #         return jsonify({"ok": True, "message": "El favorito existe"}), 200
+    #     new_favorite = Favorite(name =planet.name, user_id = current_user)
+    #     try:
+    #         db.session.add(new_favorite)
+    #         db.session.commit()
+    #         return jsonify(new_favorite.serialize()), 201 #se ha creado un recurso en la BD o en el servidor
+    #     except Exception as error:
+    #         db.session.rollback()
+    #         return jsonify(error.args), 500 #Hubo un error del lado del servidor
+    # return jsonify({
+    #     "message": "Planeta no encontrado"
+    # }), 404 # No encontrado
+
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
