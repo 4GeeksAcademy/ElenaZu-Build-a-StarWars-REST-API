@@ -9,9 +9,6 @@ class User(db.Model):
     is_active = db.Column(db.Boolean(), unique=False, nullable=False)
     favorites = db.relationship("Favorite", backref = "user", uselist = True)
 
-    def __repr__(self):
-        return '<User %r>' % self.username
-
     def serialize(self):
         return {
             "id": self.id,
@@ -94,3 +91,14 @@ class Favorite(db.Model):
             db.session.rollback() 
             return None
 
+    @classmethod
+    def delete(cls,favorite):
+        try:
+            db.session.delete(favorite) 
+            db.session.commit()
+            return True
+        except Exception as error:
+            print(error)
+            db.session.rollback() 
+            return False
+           

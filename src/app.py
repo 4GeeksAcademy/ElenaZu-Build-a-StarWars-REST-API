@@ -37,13 +37,12 @@ def sitemap():
     return generate_sitemap(app)
 
 @app.route('/user', methods=['GET'])
-def handle_hello():
+def get_users():
 
-    response_body = {
-        "msg": "Hello, this is your GET /user response "
-    }
+    users = User.query.all()
+    response = list(map(lambda user: user.serialize(),users))
+    return jsonify(response), 200
 
-    return jsonify(response_body), 200
 
 @app.route('/people', methods=['GET'])
 def get_people():
@@ -51,6 +50,7 @@ def get_people():
     characters = Character.query.all()
     response = list(map(lambda character: character.serialize(),characters))
     return jsonify(response), 200
+
 
 @app.route('/people/<int:character_id>',  methods=['GET'])
 def get_character_by_id(character_id):
@@ -75,26 +75,108 @@ def get_planet_by_id(planet_id):
          raise APIException("Planet not found", status_code=404)
     return jsonify(planet.serialize()), 200
 
+@app.route('/user/favorites/<int:user_id>', methods=['GET'])
+def get_users_favorite(user_id):
+    user_id = 1;
+    user_favorites = Favorite.query.filter_by(user_id = user_id).all()
+    if not user_favorites:
+        raise APIException("Favorite not found", status_code=400)
+    response = list(map(lambda favorite: favorite.serialize(),user_favorites))
+    return jsonify(response)
+
+
 @app.route('/favorite/planet/<int:planet_id>',  methods=['POST'])
 def add_new_favorite_planet(planet_id):
+
     current_user = 1
     planet = Planet.query.filter_by(id = planet_id).first()
+
     if planet is not None:
         favorite = Favorite.query.filter_by(name = planet.name).first()
+
         if favorite:
             return jsonify({"ok": True, "message": "El favorito existe"}), 200
+        
         body = {
             "name" : planet.name, 
             "user_id" : current_user
         }
         new_favorite = Favorite.create(body)
+
         if new_favorite is not None:
             return jsonify(new_favorite.serialize()), 201
+        
         return jsonify({"message": "Ocurrió un error del lado del servidor"}), 500
+    
     return jsonify({
         "message": "Planeta no encontrado"
     }), 404 # No encontrado
 
+@app.route('/favorite/character/<int:character_id>', methods=['POST'])
+def add_new_favorite_character(character_id):
+
+    current_user = 1
+    character = Character.query.filter_by(id = character_id).first()
+    
+    if character:
+        favorite = Favorite.query.filter_by(name = character.name).first() 
+
+        if favorite:
+            return jsonify({"ok": True, "message": "El favorito existe"}), 200
+
+        body = {
+            "name" : character.name, 
+            "user_id" : current_user
+        }
+        new_favorite = Favorite.create(body)
+
+        if new_favorite is not None:
+            return jsonify(new_favorite.serialize()), 201
+        
+        return jsonify({"message": "El favorito no existe"}), 500
+    
+    return jsonify({
+        "message": "Personaje no encontrado"
+    }), 404
+
+@app.route('/favorite/character/<int:character_id>', methods=['DELETE'])
+def delete_favorite_character(character_id):
+
+    character = Character.query.filter_by(id = character_id).first()
+    
+    if character:
+
+        Favorite.query.filter_by(name = character.name).first() 
+
+        if favorite:
+
+            character_deleted = Favorite.delete(favorite)
+
+            return jsonify({"ok": True, "message": "El favorito se ha eliminado"}), 200
+        
+        return jsonify({"message": "El favorito no existe"}), 500
+    
+    return jsonify({"message": "Personaje no encontrado"}), 404
+
+@app.route('/favorite/planet/<int:planet_id>', methods=['DELETE'])
+def delete_favorite_planet(planet_id):
+
+    planet = Planet.query.filter_by(id = planet_id).first()
+    
+    if planet:
+
+        favorite = Favorite.query.filter_by(name = planet.name).first() 
+
+        if favorite:
+
+            Favorite.delete(favorite)
+
+            return jsonify({"ok": True, "message": "El favorito se ha eliminado"}), 200
+        
+        return jsonify({"message": "El favorito no existe"}), 500
+    
+    return jsonify({"message": "Personaje no encontrado"}), 404
+        
     # planet = Planet.query.filter_by(id = planet_id).first()
     # if planet is not None:
     #     favorite = Favorite.query.filter_by(name = planet.name).first()
