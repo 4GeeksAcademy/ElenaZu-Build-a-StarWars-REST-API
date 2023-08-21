@@ -165,7 +165,7 @@ def delete_favorite_planet(planet_id):
     
     if planet:
 
-        favorite = Favorite.query.filter_by(name = planet.name).first() 
+        favorite = Favorite.query.filter_by(name = planetgit .name).first() 
 
         if favorite:
 
